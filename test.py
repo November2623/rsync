@@ -1,4 +1,5 @@
-import argparse, os
+#!/usr/bin/python3
+import argparse, os, os.path
 from stat import *
 
 parser = argparse.ArgumentParser()
@@ -37,4 +38,32 @@ def fix_access_modification(filesrc, filedest):
     mtime = stinfo.st_mtime
     os.utime(filedest,(atime, mtime))
 
-fix_access_modification(file1, file2)
+
+def create_symlink(filesrc, filedest):
+    os.symlink(filesrc, filedest)
+
+
+def create_hardlink(filesrc, filedest):
+    fd = os.open(filesrc, os.O_RDWR|os.O_CREAT)
+    os.close(fd)
+    os.link(filesrc, filedest)
+
+
+def is_hardlink(file):
+    temp = os.stat(file).st_nlink
+    if temp == 1:
+        return True
+    return False
+
+def symlink(filesrc, filedest):
+    if os.path.islink(filesrc):
+        path = os.readlink(filesrc)
+        if os.path.exists(filedest):
+            if os.path.isdir(filedest):
+                os.symlink(filesrc, path + '/' + filedest)
+            elif os.path.isfile(filedest):
+                os.unlink(filedest)
+                os.symlink(filesrc, filedest)
+
+
+symlink(file1, file2)

@@ -1,13 +1,9 @@
-import os, sys
-stinfo = os.stat('Text.txt')
-stinfo1 = os.stat('Dest.txt')
+import difflib
 
-print(stinfo)
-print('---------------------')
-print(stinfo.st_atime)
+file1 = 'Dest.txt'
+file2 = 'Note.txt'
 
-print(stinfo.st_mtime)
-
-print(stinfo1.st_atime)
-
-print(stinfo1.st_mtime)
+diff = difflib.ndiff(open(file1).readlines(),open(file2).readlines())
+re = ''.join(diff)
+print(re)
+print(type(re))
