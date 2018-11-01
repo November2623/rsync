@@ -12,12 +12,6 @@ file2 = args.file2
 
 
 def Copy_file(filesrc, filedest):
-
-    # with open(file1) as f:
-    #     with open(file2) as f1:
-    #         for line in f:
-    #             f1.write(line)
-
     fsrc = open(filesrc,'r')
     lines     = fsrc.read()
     fsrc.close()
@@ -27,62 +21,67 @@ def Copy_file(filesrc, filedest):
     os.close(fd)
 
 
-def fix_permission(filesrc, filedest):
+def keep_permission(filesrc, filedest):
     stats = os.stat(filesrc)
     mark = ((stats.st_mode) |0o555) & 0o7775
     os.chmod(filedest, mark)
 
-def fix_access_modification(filesrc, filedest):
+def keep_access_modification(filesrc, filedest):
     stinfo = os.stat(filesrc)
     atime = stinfo.st_atime
     mtime = stinfo.st_mtime
     os.utime(filedest,(atime, mtime))
 
 
-def create_symlink(filesrc, filedest):
-    os.symlink(filesrc, filedest)
-
-
 def create_hardlink(filesrc, filedest):
-    fd = os.open(filesrc, os.O_RDWR|os.O_CREAT)
+    fd = os.open(filesrc, os.O_RDWR | os.O_CREAT)
     os.close(fd)
     os.link(filesrc, filedest)
 
 
-def is_hardlink(file):
-    temp = os.stat(file).st_nlink
-    if temp == 1:
-        return True
-    return False
-
-def symlink(filesrc, filedest):
-    if os.path.islink(filesrc):
-        path = os.readlink(filesrc)
-        if os.path.exists(filedest):
-            if os.path.isdir(filedest):
-                os.symlink(path, filedest+'/'+filesrc)
-            elif os.path.isfile(filedest):
-                os.unlink(filedest)
-                os.symlink(filesrc, filedest)
-        else:
-            if filedest[-1] == '/':
-                os.mkdir(filedest[:-1])
-                fd = os.open(filedest + '/' + filesrc, os.O_WRONLY| os.O_CREAT)
-                os.symlink(path, filedest+'/'+filesrc)
-                os.close(fd)
-            else:
-                os.symlink(path, filedest+'/'+filesrc)
+def keep_symlink(filesrc, filedest):
+    path = os.readlink(filesrc)
+    if os.path.exists(filedest):
+        if os.path.isdir(filedest):
+            os.symlink(path, filedest+'/'+filesrc)
+        elif os.path.isfile(filedest):
+            os.unlink(filedest)
+            os.symlink(path, filedest)
     else:
         if filedest[-1] == '/':
             os.mkdir(filedest[:-1])
-            fd = os.open(filedest[:-1], os.O_WRONLY| os.O_CREAT)
-            os.symlink(filesrc,filedest)
-            os.close(fd)
-
-        elif os.path.isfile(filedest):
-            fd = os.open(filedest, os.O_WRONLY| os.O_CREAT)
-            os.symlink(filesrc, filedest)
+            os.symlink(path, filedest + filesrc)
+        else:
+            os.symlink(path, filedest)
 
 
 
-symlink(file1, file2)
+def check_file(filesrc, filedest):
+    path = os.path
+    if os.path.isfile(filesrc):
+        if os.path.isdir(filedest):
+            main(filesrc, filedest)
+        else:
+            main(filesrc, filedest)
+    elif path.isdir(filesrc):
+        print('skipping directory %s' % (filesrc))
+    else:
+        src_path = os.getcwd() + '/' + src_file_name
+        print('rsync: link_stat %s failed: \
+            No such file or directory (2)\
+            \nrsync error: some files/attrs were not transferred (see previous errors)\
+            (code 23) at main.c(1196) [sender=3.1.2]' % src_path)
+
+def keep_hardlink(filesrc, filedest):
+    if os.lstat(filesrc).st_nlink > 1:
+        if os.path.isfile(filedest):
+            os.unlink(filedest)
+        os.link(filesrc, filedest)
+        exit()
+    elif os.path.islink(filesrc):
+        keep_symlink(filesrc, filedest)
+        exit()
+def main(filesrc, filedest):
+    keep_hardlink(filesrc, filedest)
+
+check_file(file1, file2)
