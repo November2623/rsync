@@ -4,10 +4,10 @@ import os
 import os.path
 from stat import *
 
-parser = argparse.ArgumentParser()
 
-parser.add_argument('file1',help='srcfile')
-parser.add_argument('file2',help='destfile')
+parser = argparse.ArgumentParser()
+parser.add_argument('file1', help='srcfile')
+parser.add_argument('file2', help='destfile')
 parser.add_argument('-c', '--checksum', action='store_true')
 parser.add_argument('-u', '--update', action='store_true')
 args = parser.parse_args()
@@ -22,20 +22,21 @@ def check_sum(filesrc, filedest):
 
 
 def Copy_file(filesrc, filedest):
-    fsrc = open(filesrc,'r')
+    fsrc = open(filesrc, 'r')
     lines = fsrc.read()
     fsrc.close()
-    fd = os.open(filedest, os.O_RDWR|os.O_CREAT )
+    fd = os.open(filedest, os.O_RDWR | os.O_CREAT)
     b = lines.encode()
     os.write(fd, b)
     os.close(fd)
 
-def check_time(filesrc, filedest):
-    src_access_time = os.stat(filesrc).st_atime
-    src_modification_time = os.stat(filesrc).st_mtime
-    dest_access_time = os.stat(filedest).st_atime
-    dest_modification_time = os.stat(filedest).st_mtime
-    return src_access_time == dest_access_time and src_modification_time == dest_modification_time
+
+def c_time(filesrc, filedest):
+    src_atime = os.stat(filesrc).st_atime
+    src_mtime = os.stat(filesrc).st_mtime
+    dest_atime = os.stat(filedest).st_atime
+    dest_mtime = os.stat(filedest).st_mtime
+    return (src_atime == dest_atime and src_mtime == dest_mtime)
 
 
 def check_update(filesrc, filedest):
@@ -51,7 +52,7 @@ def check_update(filesrc, filedest):
 
 def check_size(filesrc, filedest):
     src_size = os.stat(filesrc).st_size
-    dest_size =os.stat(filedest).st_size
+    dest_size = os.stat(filedest).st_size
     return src_size == dest_size
 
 
@@ -62,9 +63,25 @@ def check_option(args, filesrc, filedest):
         elif args.update:
             return check_update(filesrc, filedest)
         else:
-            return check_size(filesrc, filedest) and check_time(filesrc, filedest):
+            return check_size(filesrc, filedest) and c_time(filesrc, filedest)
     else:
         return False
+
+ def update_conten(filesrc, filedest):
+     f1 = os.open(src, os.O_RDONLY)
+     srcstr = os.read(f1, os.path.getsize(filesrc))
+     f2 = os.open(dst, os.O_RDWR | os.O_CREAT)
+     dststr = os.read(f2, os.path.getsize(filedst))
+     count = 0
+     while count < os.path.getsize(filesrc):
+         os.lseek(f1, count, 0)
+         os.lseek(f2, count, 0)
+         if count < len(dststr):
+            if dststr[count] != srcstr[count]:
+                os.write(f2, os.read(f1, 1))
+            else:
+                os.write(f2, os.read(f1, 1))
+        count = count + 1
 
 
 def keep_permission(filesrc, filedest):
@@ -72,11 +89,13 @@ def keep_permission(filesrc, filedest):
     mark = ((stats.st_mode) | 0o555) & 0o7775
     os.chmod(filedest, mark)
 
+
 def keep_access_modification(filesrc, filedest):
     stinfo = os.stat(filesrc)
     atime = stinfo.st_atimecheck_option()
     mtime = stinfo.st_mtime
-    os.utime(filedest,(atime, mtime))
+    os.utime(filedest, (atime, mtime))
+
 
 #
 # def create_hardlink(filesrc, filedest):
@@ -103,7 +122,7 @@ def keep_access_modification(filesrc, filedest):
 
 def keep_symlink_hardlink(filesrc, filedest):
     if os.lstat(filesrc).st_nlink > 1:
-        if os.path.exists(filedest):                        #Check hardlink file_src
+        if os.path.exists(filedest):
             if os.path.isdir(filedest):
                 os.link(filesrc, filedest+'/'+filesrc)
             elif os.path.isfile(filedest):
@@ -115,7 +134,7 @@ def keep_symlink_hardlink(filesrc, filedest):
                 os.link(filesrc, filedest + filesrc)
             else:
                 os.link(filesrc, filedest)
-    elif os.path.islink(filesrc):                           # Check symlink file_src
+    elif os.path.islink(filesrc):                    # Check symlink file_src
         path = os.readlink(filesrc)
         if os.path.exists(filedest):
             if os.path.isdir(filedest):
@@ -149,11 +168,12 @@ def keep_symlink_hardlink(filesrc, filedest):
 def check_file(filesrc, filedest):
     path = os.path
     if os.path.isfile(filesrc):
+        print(1)
         if os.path.isdir(filedest):
             main(filesrc, filedest)
         else:
             main(filesrc, filedest)
-    elif path.isdir(filesrc):
+    elif os.path.isdir(filesrc):
         print('skipping directory %s' % (filesrc))
     else:
         src_path = os.getcwd() + '/' + src_file_name
@@ -185,11 +205,11 @@ def main(filesrc, filedest):
             keep_symlink_hardlink(filesrc, filedest)
     except PermissionError:
         if a == 0:
-            path = os.getcwd() + '/'/ + filesrc
+            path = os.getcwd() + '/' + filesrc
         else:
             path = os.getcwd() + '/' + filedest
-        print('rsync: send_files failed to open "%s":\
-        Permission denied (13)\
-        \nrsync error: some files/attrs were not transferred\
-        (see previous errors) (code 23) at main.c(1183) [sender=3.1.1]' % path)
+        print('rsync: send_files failed to open "%s": Permission denied (13)\
+            \nrsync error: some files/attrs were not transferred(see previous errors) (code 23) at main.c(1183) [sender=3.1.1]' %path)
         exit()
+if __name__ == '__main__':
+    check_file(file1, file2)
