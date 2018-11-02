@@ -1,69 +1,72 @@
-#!/usr/bin/python3
-import argparse, os, os.path
-from stat import *
+# Python Difflib demo
+# Author: Neal Walters
+# loosely based on http://ahlawat.net/wordpress/?p=371
+# 01/17/2011
 
-parser = argparse.ArgumentParser()
+# build the files here - later we will just read the files probably
+file1Contents="""
+for j = 1 to 10:
+   print "ABC"
+   print "DEF"
+   print "HIJ"
+   print "JKL"
+   print "Hello World"
+   print "j=" + j
+   print "XYZ"
+"""
 
-parser.add_argument('file1',help='srcfile')
-parser.add_argument('file2',help='destfile')
-args = parser.parse_args()
-file1 = args.file1
-file2 = args.file2
+file2Contents = """
+for j = 1 to 10:
+   print "ABC"
+   print "DEF"
+   print "HIJ"
+   print "JKL"
+   print "Hello World"
+   print "XYZ"
+print "The end"
+"""
 
+filename1 = "diff_file1.txt"
+filename2 = "diff_file2.txt"
 
-def Copy_file(filesrc, filedest):
+file1 = open(filename1,"w")
+file2 = open(filename2,"w")
 
-    # with open(file1) as f:
-    #     with open(file2) as f1:
-    #         for line in f:
-    #             f1.write(line)
+file1.write(file1Contents)
+file2.write(file2Contents)
 
-    fsrc = open(filesrc,'r')
-    lines     = fsrc.read()
-    fsrc.close()
-    fd = os.open(filedest, os.O_RDWR|os.O_CREAT )
-    b = lines.encode()
-    os.write(fd, b)
-    os.close(fd)
+file1.close()
+file2.close()
+#end of file build
 
+lines1 = open(filename1, "r").readlines()
+lines2 = open(filename2, "r").readlines()
 
-def fix_permission(filesrc, filedest):
-    stats = os.stat(filesrc)
-    mark = ((stats.st_mode) |0o555) & 0o7775
-    os.chmod(filedest, mark)
-
-def fix_access_modification(filesrc, filedest):
-    stinfo = os.stat(filesrc)
-    atime = stinfo.st_atime
-    mtime = stinfo.st_mtime
-    os.utime(filedest,(atime, mtime))
-
-
-def create_symlink(filesrc, filedest):
-    os.symlink(filesrc, filedest)
-
-
-def create_hardlink(filesrc, filedest):
-    fd = os.open(filesrc, os.O_RDWR|os.O_CREAT)
-    os.close(fd)
-    os.link(filesrc, filedest)
+import difflib
 
 
-def is_hardlink(file):
-    temp = os.stat(file).st_nlink
-    if temp == 1:
-        return True
-    return False
+diffSequence = difflib.ndiff(lines1, lines2)
 
-def symlink(filesrc, filedest):
-    if os.path.islink(filesrc):
-        path = os.readlink(filesrc)
-        if os.path.exists(filedest):
-            if os.path.isdir(filedest):
-                os.symlink(filesrc, path + '/' + filedest)
-            elif os.path.isfile(filedest):
-                os.unlink(filedest)
-                os.symlink(filesrc, filedest)
+print("\n ----- SHOW DIFF ----- \n")
+for i, line in enumerate(diffSequence):
+    if line[0] == '-':
+        line.split('-')
+        print(line)
 
-
-symlink(file1, file2)
+# diffObj = difflib.Differ()
+# deltaSequence = diffObj.compare(lines1, lines2)
+# deltaList = list(deltaSequence)
+#
+# print("\n ----- SHOW DELTALIST ----- \n")
+# for i, line in enumerate(deltaList):
+#     print(line)
+#
+# #let's suppose we store just the diffSequence in the database
+# #then we want to take the current file (file2) and recreate the original (file1) from it
+# #by backward applying the diff
+#
+# contextDiffSeq = difflib.context_diff(lines1, lines2)
+# contextDiffList = list(contextDiffSeq)
+#
+# for i, line in enumerate(contextDiffList):
+#     print (line)
